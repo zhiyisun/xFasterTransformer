@@ -114,10 +114,14 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
     static_assert(std::is_same_v<T, bfloat16_t> || std::is_same_v<T, float16_t>, "AMX gemm only supports BF16/FP16.");
 
     if constexpr (std::is_same_v<T, bfloat16_t>) {
+        static std::mutex debug_mutex;
+        
         if (k == 96) {
+            std::lock_guard<std::mutex> lock(debug_mutex);
             FILE *fp = fopen("/tmp/xft.log", "a");
             if (fp != nullptr) {
-            fprintf(fp, "=== Debug: Printing matrices A and packedB ===\n");
+            int tid = omp_get_thread_num();
+            fprintf(fp, "=== Debug Thread %d: Printing matrices A and packedB ===\n", tid);
             fprintf(fp, "Matrix A (row major, %dx%d, lda=%d):\n", m, n, lda);
             for (int i = 0; i < m; ++i) {
                 for (int j = 0; j < lda; ++j) {
@@ -133,7 +137,6 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
                 }
                 fprintf(fp, "\n");
             }
-            fprintf(fp, "=== End debug matrices ===\n");
             fclose(fp);
             }
         }
@@ -142,9 +145,11 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
             m, n, k, (XDNN_BF16 *)A, lda, (XDNN_BF16 *)packedB, ldb, (XDNN_BF16 *)C, ldc, beta);
 
         if (k == 96) {
+            std::lock_guard<std::mutex> lock(debug_mutex);
             FILE *fp = fopen("/tmp/xft.log", "a");
             if (fp != nullptr) {
-            fprintf(fp, "=== Debug: Printing matrix C (result) ===\n");
+            int tid = omp_get_thread_num();
+            fprintf(fp, "=== Debug Thread %d: Printing matrix C (result) ===\n", tid);
             fprintf(fp, "Matrix C (row major, %dx%d, ldc=%d):\n", m, k, ldc);
             for (int i = 0; i < m; ++i) {
                 for (int j = 0; j < ldc; ++j) {
@@ -152,7 +157,7 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
                 }
                 fprintf(fp, "\n");
             }
-            fprintf(fp, "=== End debug matrix C ===\n");
+            fprintf(fp, "=== End debug matrix C Thread %d ===\n", tid);
             fclose(fp);
             }
         }
