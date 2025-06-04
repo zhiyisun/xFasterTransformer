@@ -114,8 +114,48 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
     static_assert(std::is_same_v<T, bfloat16_t> || std::is_same_v<T, float16_t>, "AMX gemm only supports BF16/FP16.");
 
     if constexpr (std::is_same_v<T, bfloat16_t>) {
+        if (k == 96) {
+            FILE *fp = fopen("/tmp/xft.log", "a");
+            if (fp != nullptr) {
+            fprintf(fp, "=== Debug: Printing matrices A and packedB ===\n");
+            fprintf(fp, "Matrix A (row major, %dx%d, lda=%d):\n", m, n, lda);
+            for (int i = 0; i < m; ++i) {
+                for (int j = 0; j < lda; ++j) {
+                fprintf(fp, "%.6f ", (float)A[i * lda + j]);
+                }
+                fprintf(fp, "\n");
+            }
+            
+            fprintf(fp, "\nPacked matrix B (column major, %dx%d, ldb=%d):\n", n, k, ldb);
+            for (int j = 0; j < ldb; ++j) {
+                for (int i = 0; i < n; ++i) {
+                fprintf(fp, "%.6f ", (float)packedB[i * n + j]);
+                }
+                fprintf(fp, "\n");
+            }
+            fprintf(fp, "=== End debug matrices ===\n");
+            fclose(fp);
+            }
+        }
+
         xdnn_small_amx_sgemm_bf16bf16bf16_compute(
-                m, n, k, (XDNN_BF16 *)A, lda, (XDNN_BF16 *)packedB, ldb, (XDNN_BF16 *)C, ldc, beta);
+            m, n, k, (XDNN_BF16 *)A, lda, (XDNN_BF16 *)packedB, ldb, (XDNN_BF16 *)C, ldc, beta);
+
+        if (k == 96) {
+            FILE *fp = fopen("/tmp/xft.log", "a");
+            if (fp != nullptr) {
+            fprintf(fp, "=== Debug: Printing matrix C (result) ===\n");
+            fprintf(fp, "Matrix C (row major, %dx%d, ldc=%d):\n", m, k, ldc);
+            for (int i = 0; i < m; ++i) {
+                for (int j = 0; j < ldc; ++j) {
+                fprintf(fp, "%.6f ", (float)C[i * ldc + j]);
+                }
+                fprintf(fp, "\n");
+            }
+            fprintf(fp, "=== End debug matrix C ===\n");
+            fclose(fp);
+            }
+        }
     } else {
         xdnn_small_amx_sgemm_f16f16f16_compute(
                 m, n, k, (XDNN_FP16 *)A, lda, (XDNN_FP16 *)packedB, ldb, (XDNN_FP16 *)C, ldc, beta);
