@@ -120,28 +120,41 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
         if (k == 96 && !debug_printed) {
             std::lock_guard<std::mutex> lock(debug_mutex);
             if (!debug_printed) {
-                debug_printed = true;
-                FILE *fp = fopen("/tmp/xft.log", "a");
-                if (fp != nullptr) {
-                    int tid = omp_get_thread_num();
-                    fprintf(fp, "=== Debug Thread %d: Printing matrices A and packedB ===\n", tid);
-                    fprintf(fp, "Matrix A (row major, %dx%d, lda=%d):\n", m, n, lda);
-                    for (int i = 0; i < m; ++i) {
-                    for (int j = 0; j < lda; ++j) {
-                        fprintf(fp, "%.6f ", (float)A[i * lda + j]);
-                    }
-                    fprintf(fp, "\n");
-                    }
-                    
-                    fprintf(fp, "\nPacked matrix B (column major, %dx%d, ldb=%d):\n", n, k, ldb);
-                    for (int j = 0; j < ldb; ++j) {
-                    for (int i = 0; i < n; ++i) {
-                        fprintf(fp, "%.6f ", (float)packedB[i * n + j]);
-                    }
-                    fprintf(fp, "\n");
-                    }
-                    fclose(fp);
+            debug_printed = true;
+            FILE *fp = fopen("/tmp/xft.log", "a");
+            if (fp != nullptr) {
+                int tid = omp_get_thread_num();
+                fprintf(fp, "=== Debug Thread %d: Printing matrices A and packedB ===\n", tid);
+                
+                fprintf(fp, "Matrix A (row major, %dx%d, lda=%d):\n", m, n, lda);
+                fprintf(fp, "     ");
+                for (int j = 0; j < lda; ++j) {
+                fprintf(fp, "   col%2d ", j);
                 }
+                fprintf(fp, "\n");
+                for (int i = 0; i < m; ++i) {
+                fprintf(fp, "row%2d", i);
+                for (int j = 0; j < lda; ++j) {
+                    fprintf(fp, "%8.6f ", (float)A[i * lda + j]);
+                }
+                fprintf(fp, "\n");
+                }
+                
+                fprintf(fp, "\nPacked matrix B (column major, %dx%d, ldb=%d):\n", n, k, ldb);
+                fprintf(fp, "     ");
+                for (int j = 0; j < ldb; ++j) {
+                fprintf(fp, "   col%2d ", j);
+                }
+                fprintf(fp, "\n");
+                for (int i = 0; i < n; ++i) {
+                fprintf(fp, "row%2d", i);
+                for (int j = 0; j < ldb; ++j) {
+                    fprintf(fp, "%8.6f ", (float)packedB[i * ldb + j]);
+                }
+                fprintf(fp, "\n");
+                }
+                fclose(fp);
+            }
             }
         }
 
@@ -152,21 +165,28 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
             std::lock_guard<std::mutex> lock(debug_mutex);
             static bool result_printed = false;
             if (!result_printed) {
-                result_printed = true;
-                FILE *fp = fopen("/tmp/xft.log", "a");
-                if (fp != nullptr) {
-                    int tid = omp_get_thread_num();
-                    fprintf(fp, "=== Debug Thread %d: Printing matrix C (result) ===\n", tid);
-                    fprintf(fp, "Matrix C (row major, %dx%d, ldc=%d):\n", m, k, ldc);
-                    for (int i = 0; i < m; ++i) {
-                    for (int j = 0; j < ldc; ++j) {
-                        fprintf(fp, "%.6f ", (float)C[i * ldc + j]);
-                    }
-                    fprintf(fp, "\n");
-                    }
-                    fprintf(fp, "=== End debug matrix C Thread %d ===\n", tid);
-                    fclose(fp);
+            result_printed = true;
+            FILE *fp = fopen("/tmp/xft.log", "a");
+            if (fp != nullptr) {
+                int tid = omp_get_thread_num();
+                fprintf(fp, "=== Debug Thread %d: Printing matrix C (result) ===\n", tid);
+                
+                fprintf(fp, "Matrix C (row major, %dx%d, ldc=%d):\n", m, k, ldc);
+                fprintf(fp, "     ");
+                for (int j = 0; j < ldc; ++j) {
+                fprintf(fp, "   col%2d ", j);
                 }
+                fprintf(fp, "\n");
+                for (int i = 0; i < m; ++i) {
+                fprintf(fp, "row%2d", i);
+                for (int j = 0; j < ldc; ++j) {
+                    fprintf(fp, "%8.6f ", (float)C[i * ldc + j]);
+                }
+                fprintf(fp, "\n");
+                }
+                fprintf(fp, "=== End debug matrix C Thread %d ===\n", tid);
+                fclose(fp);
+            }
             }
         }
     } else {
