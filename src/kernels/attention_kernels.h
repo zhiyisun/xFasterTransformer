@@ -167,6 +167,21 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
                     }
                     fprintf(fp, "\n");
                 }
+
+                fprintf(fp, "Matrix C (row major, %dx%d, ldc=%d):\n", m, k, ldc);
+                fprintf(fp, "          ");
+                for (int j = 0; j < ldc; ++j) {
+                    fprintf(fp, "col %4d   ", j);
+                }
+                fprintf(fp, "\n");
+                for (int i = 0; i < m; ++i) {
+                    fprintf(fp, "row%4d ", i);
+                    for (int j = 0; j < ldc; ++j) {
+                        fprintf(fp, "%10.6f ", (float)C[i * ldc + j]);
+                    }
+                    fprintf(fp, "\n");
+                }
+
                 fclose(fp);
             }
             }
@@ -183,7 +198,7 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
             FILE *fp = fopen("/tmp/xft.log", "a");
             if (fp != nullptr) {
                 int tid = omp_get_thread_num();
-                fprintf(fp, "=== Debug Thread %d: Printing matrix C (result) ===\n", tid);
+                fprintf(fp, "=== Debug Thread %d: Printing matrix C (After compute result) ===\n", tid);
                 
                 fprintf(fp, "Matrix C (row major, %dx%d, ldc=%d):\n", m, k, ldc);
                 fprintf(fp, "          ");
