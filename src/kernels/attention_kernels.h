@@ -116,49 +116,57 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
     if constexpr (std::is_same_v<T, bfloat16_t>) {
         static std::mutex debug_mutex;
         
-        if (k == 96) {
+        static bool debug_printed = false;
+        if (k == 96 && !debug_printed) {
             std::lock_guard<std::mutex> lock(debug_mutex);
-            FILE *fp = fopen("/tmp/xft.log", "a");
-            if (fp != nullptr) {
-            int tid = omp_get_thread_num();
-            fprintf(fp, "=== Debug Thread %d: Printing matrices A and packedB ===\n", tid);
-            fprintf(fp, "Matrix A (row major, %dx%d, lda=%d):\n", m, n, lda);
-            for (int i = 0; i < m; ++i) {
-                for (int j = 0; j < lda; ++j) {
-                fprintf(fp, "%.6f ", (float)A[i * lda + j]);
+            if (!debug_printed) {
+                debug_printed = true;
+                FILE *fp = fopen("/tmp/xft.log", "a");
+                if (fp != nullptr) {
+                    int tid = omp_get_thread_num();
+                    fprintf(fp, "=== Debug Thread %d: Printing matrices A and packedB ===\n", tid);
+                    fprintf(fp, "Matrix A (row major, %dx%d, lda=%d):\n", m, n, lda);
+                    for (int i = 0; i < m; ++i) {
+                    for (int j = 0; j < lda; ++j) {
+                        fprintf(fp, "%.6f ", (float)A[i * lda + j]);
+                    }
+                    fprintf(fp, "\n");
+                    }
+                    
+                    fprintf(fp, "\nPacked matrix B (column major, %dx%d, ldb=%d):\n", n, k, ldb);
+                    for (int j = 0; j < ldb; ++j) {
+                    for (int i = 0; i < n; ++i) {
+                        fprintf(fp, "%.6f ", (float)packedB[i * n + j]);
+                    }
+                    fprintf(fp, "\n");
+                    }
+                    fclose(fp);
                 }
-                fprintf(fp, "\n");
-            }
-            
-            fprintf(fp, "\nPacked matrix B (column major, %dx%d, ldb=%d):\n", n, k, ldb);
-            for (int j = 0; j < ldb; ++j) {
-                for (int i = 0; i < n; ++i) {
-                fprintf(fp, "%.6f ", (float)packedB[i * n + j]);
-                }
-                fprintf(fp, "\n");
-            }
-            fclose(fp);
             }
         }
 
         xdnn_small_amx_sgemm_bf16bf16bf16_compute(
             m, n, k, (XDNN_BF16 *)A, lda, (XDNN_BF16 *)packedB, ldb, (XDNN_BF16 *)C, ldc, beta);
 
-        if (k == 96) {
+        if (k == 96 && debug_printed) {
             std::lock_guard<std::mutex> lock(debug_mutex);
-            FILE *fp = fopen("/tmp/xft.log", "a");
-            if (fp != nullptr) {
-            int tid = omp_get_thread_num();
-            fprintf(fp, "=== Debug Thread %d: Printing matrix C (result) ===\n", tid);
-            fprintf(fp, "Matrix C (row major, %dx%d, ldc=%d):\n", m, k, ldc);
-            for (int i = 0; i < m; ++i) {
-                for (int j = 0; j < ldc; ++j) {
-                fprintf(fp, "%.6f ", (float)C[i * ldc + j]);
+            static bool result_printed = false;
+            if (!result_printed) {
+                result_printed = true;
+                FILE *fp = fopen("/tmp/xft.log", "a");
+                if (fp != nullptr) {
+                    int tid = omp_get_thread_num();
+                    fprintf(fp, "=== Debug Thread %d: Printing matrix C (result) ===\n", tid);
+                    fprintf(fp, "Matrix C (row major, %dx%d, ldc=%d):\n", m, k, ldc);
+                    for (int i = 0; i < m; ++i) {
+                    for (int j = 0; j < ldc; ++j) {
+                        fprintf(fp, "%.6f ", (float)C[i * ldc + j]);
+                    }
+                    fprintf(fp, "\n");
+                    }
+                    fprintf(fp, "=== End debug matrix C Thread %d ===\n", tid);
+                    fclose(fp);
                 }
-                fprintf(fp, "\n");
-            }
-            fprintf(fp, "=== End debug matrix C Thread %d ===\n", tid);
-            fclose(fp);
             }
         }
     } else {
