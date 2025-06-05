@@ -34,10 +34,9 @@ ExternalProject_Add(xdnn_lib
   # BUILD_COMMAND     ""
   # INSTALL_COMMAND   ""
   # TEST_COMMAND      ""
-  
-  GIT_REPOSITORY    https://github.com/zhiyisun/xdnn-reloaded.gitAdd commentMore actions
-  GIT_TAG           main
 
+  GIT_REPOSITORY    https://github.com/zhiyisun/xdnn-reloaded.git
+  GIT_TAG           main
   SOURCE_DIR        ${CMAKE_SOURCE_DIR}/3rdparty/xdnn
   BINARY_DIR        ${CMAKE_SOURCE_DIR}/3rdparty/xdnn
   CONFIGURE_COMMAND ""
