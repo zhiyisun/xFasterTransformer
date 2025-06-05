@@ -135,7 +135,7 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
                 for (int i = 0; i < m; ++i) {
                 fprintf(fp, "row%4d ", i);
                 for (int j = 0; j < lda; ++j) {
-                    fprintf(fp, "%03.6f ", (float)A[i * lda + j]);
+                    fprintf(fp, "%10.6f ", (float)A[i * lda + j]);
                 }
                 fprintf(fp, "\n");
                 }
@@ -149,7 +149,7 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
                 for (int i = 0; i < n; ++i) {
                 fprintf(fp, "row%4d ", i);
                 for (int j = 0; j < ldb; ++j) {
-                    fprintf(fp, "%03.6f ", (float)packedB[i * ldb + j]);
+                    fprintf(fp, "%10.6f ", (float)packedB[i * ldb + j]);
                 }
                 fprintf(fp, "\n");
                 }
@@ -180,7 +180,7 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
                 for (int i = 0; i < m; ++i) {
                 fprintf(fp, "row%4d ", i);
                 for (int j = 0; j < ldc; ++j) {
-                    fprintf(fp, "%03.6f ", (float)C[i * ldc + j]);
+                    fprintf(fp, "%10.6f ", (float)C[i * ldc + j]);
                 }
                 fprintf(fp, "\n");
                 }
