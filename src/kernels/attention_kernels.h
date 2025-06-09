@@ -126,7 +126,7 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
                 int tid = omp_get_thread_num();
                 fprintf(fp, "=== Debug Thread %d: Printing matrices A and packedB ===\n", tid);
                 
-                fprintf(fp, "Matrix A (row major, %dx%d, lda=%d):\n", m, n, lda);
+                fprintf(fp, "Matrix A (row major, %dx%d, lda=%d):\n", m, k, lda);
                 fprintf(fp, "          ");
                 for (int j = 0; j < lda; ++j) {
                     fprintf(fp, "col %4d   ", j);
@@ -140,7 +140,7 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
                     fprintf(fp, "\n");
                 }
                 
-                fprintf(fp, "\nPacked matrix B (row major, %dx%d, ldb=%d):\n", n, k, ldb);
+                fprintf(fp, "\nPacked matrix B (row major, %dx%d, ldb=%d):\n", k, n, ldb);
                 fprintf(fp, "          ");
                 for (int j = 0; j < ldb; ++j) {
                     fprintf(fp, "col %4d   ", j);
@@ -154,7 +154,7 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
                     fprintf(fp, "\n");
                 }
 
-                fprintf(fp, "\nPacked matrix B (column major, %dx%d, ldb=%d):\n", n, k, ldb);
+                fprintf(fp, "\nPacked matrix B (column major, %dx%d, ldb=%d):\n", k, n, ldb);
                 fprintf(fp, "          ");
                 for (int j = 0; j < n; ++j) {
                     fprintf(fp, "col %4d   ", j);
@@ -168,7 +168,7 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
                     fprintf(fp, "\n");
                 }
 
-                fprintf(fp, "Matrix C (row major, %dx%d, ldc=%d):\n", m, k, ldc);
+                fprintf(fp, "Matrix C (row major, %dx%d, ldc=%d):\n", m, n, ldc);
                 fprintf(fp, "          ");
                 for (int j = 0; j < ldc; ++j) {
                     fprintf(fp, "col %4d   ", j);
@@ -200,7 +200,7 @@ void small_amx_gemm_16bits_compute(int m, int n, int k, T *A, int lda, T *packed
                 int tid = omp_get_thread_num();
                 fprintf(fp, "=== Debug Thread %d: Printing matrix C (After compute result) ===\n", tid);
                 
-                fprintf(fp, "Matrix C (row major, %dx%d, ldc=%d):\n", m, k, ldc);
+                fprintf(fp, "Matrix C (row major, %dx%d, ldc=%d):\n", m, n, ldc);
                 fprintf(fp, "          ");
                 for (int j = 0; j < ldc; ++j) {
                     fprintf(fp, "col %4d   ", j);
