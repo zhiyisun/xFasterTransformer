@@ -1,4 +1,5 @@
--f https://download.pytorch.org/whl/torch_stable.html
+#-f https://download.pytorch.org/whl/torch_stable.html
+-f https://download.pytorch.org/whl/torch/
 cmake==3.26.1
 sentencepiece==0.2.0
 torch==2.7.0+cpu
