@@ -69,6 +69,11 @@ public:
         } else {
             throw std::invalid_argument("Invalid KV cache data type.");
         }
+        
+        printf(">>> DEBUG: TorchAutoModel constructor - modelPath=%s, dtype=%s, KVCacheDtype=%s\n", 
+               modelPath.c_str(), dtype.c_str(), KVCacheDtype.c_str());
+        printf(">>> DEBUG: Mapped dataType=%d, KVCacheDataType=%d\n", (int)dataType, (int)KVCacheDataType);
+        
         model = new xft::AutoModel(modelPath, dataType, KVCacheDataType);
     };
 

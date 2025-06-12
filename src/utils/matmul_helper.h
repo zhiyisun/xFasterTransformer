@@ -1894,6 +1894,8 @@ private:
     void onednn_gemm_compute(bool transA, int M, int N, int K, float alpha, const Tin *A, int lda, const Twei *packedB,
             float beta, Tout *C, int ldc, const Tbias *bias = nullptr, const Tin *res = nullptr, int ldres = -1,
             const matmul_kinds postAlg = matmul_kinds::Basic) {
+        printf(">>> DEBUG: onednn_gemm_compute called: M=%d, N=%d, K=%d, transA=%d, postAlg=%d\n", M, N, K, transA, (int)postAlg);
+        
         TimeLine t("onednn_gemm_compute");
         TimeLine t1("onednn_gemm_compute.create_primitive");
         using namespace dnnl;
@@ -2006,17 +2008,33 @@ private:
                 }
             }
 
-            if (postAlg == matmul_kinds::Basic) {
-                if (bias != nullptr)
-                    matmul_pd = new matmul::primitive_desc(*engine, input_md, weight_md, bias_md, output_md);
-                else
-                    matmul_pd = new matmul::primitive_desc(*engine, input_md, weight_md, output_md);
-            } else {
-                if (bias != nullptr)
-                    matmul_pd
-                            = new matmul::primitive_desc(*engine, input_md, weight_md, bias_md, output_md, matmul_attr);
-                else
-                    matmul_pd = new matmul::primitive_desc(*engine, input_md, weight_md, output_md, matmul_attr);
+            printf(">>> DEBUG: onednn_gemm_compute creating primitive_desc: M=%d, N=%d, K=%d, transA=%d, postAlg=%d\n", M, N, K, transA, (int)postAlg);
+            printf(">>> DEBUG: input_dims=[%ld,%ld], weight_dims=[%ld,%ld], output_dims=[%ld,%ld]\n", 
+                   input_dims[0], input_dims[1], weight_dims[0], weight_dims[1], output_dims[0], output_dims[1]);
+            
+            try {
+                if (postAlg == matmul_kinds::Basic) {
+                    if (bias != nullptr) {
+                        printf(">>> DEBUG: Creating matmul with bias (Basic)\n");
+                        matmul_pd = new matmul::primitive_desc(*engine, input_md, weight_md, bias_md, output_md);
+                    } else {
+                        printf(">>> DEBUG: Creating matmul without bias (Basic)\n");
+                        matmul_pd = new matmul::primitive_desc(*engine, input_md, weight_md, output_md);
+                    }
+                } else {
+                    if (bias != nullptr) {
+                        printf(">>> DEBUG: Creating matmul with bias and attributes (postAlg=%d)\n", (int)postAlg);
+                        matmul_pd = new matmul::primitive_desc(*engine, input_md, weight_md, bias_md, output_md, matmul_attr);
+                    } else {
+                        printf(">>> DEBUG: Creating matmul without bias and with attributes (postAlg=%d)\n", (int)postAlg);
+                        matmul_pd = new matmul::primitive_desc(*engine, input_md, weight_md, output_md, matmul_attr);
+                    }
+                }
+                printf(">>> DEBUG: Successfully created matmul primitive_desc\n");
+            } catch (const std::exception& e) {
+                printf(">>> ERROR: Failed to create matmul primitive_desc: %s\n", e.what());
+                printf(">>> ERROR: Parameters - M=%d, N=%d, K=%d, transA=%d, postAlg=%d\n", M, N, K, transA, (int)postAlg);
+                throw;
             }
 
             matmul_prim = new matmul(*matmul_pd);
@@ -2096,6 +2114,8 @@ private:
     template <typename Tin, typename Twei, typename Tout>
     void onednn_amx_gemm_compute(bool transA, int M, int N, int K, float alpha, const Tin *A, int lda,
             const Twei *packedB, float beta, Tout *C, int ldc, const matmul_kinds postAlg = matmul_kinds::Basic) {
+        printf(">>> DEBUG: onednn_amx_gemm_compute called: M=%d, N=%d, K=%d, transA=%d, postAlg=%d\n", M, N, K, transA, (int)postAlg);
+        
         TimeLine t("onednn_amx_gemm_compute");
         TimeLine t1("onednn_amx_gemm_compute.create_primitive");
         using namespace dnnl;
@@ -2135,22 +2155,31 @@ private:
                 exit(-1);
             }
 
+            printf(">>> DEBUG: onednn_amx_gemm_compute creating primitive_desc: M=%d, N=%d, K=%d, transA=%d, postAlg=%d\n", M, N, K, transA, (int)postAlg);
+            printf(">>> DEBUG: input_dims=[%ld,%ld], weight_dims=[%ld,%ld], output_dims=[%ld,%ld]\n", 
+                   input_dims[0], input_dims[1], weight_dims[0], weight_dims[1], output_dims[0], output_dims[1]);
+            printf(">>> DEBUG: dt_x16=%d (bf16=%d, f16=%d)\n", (int)dt_x16, (int)dt::bf16, (int)dt::f16);
+            
             // Create primitive descriptor and primitive.
-            switch (postAlg) {
-                case matmul_kinds::Basic:
-                    matmul_pd = new matmul::primitive_desc(*engine, input_md, weight_md, output_md);
-                    break;
-                case matmul_kinds::Silu: {
-                    const float post_alpha = 1.0f;
-                    const float post_beta = 0.0f;
-                    post_ops matmul_ops;
-                    matmul_ops.append_eltwise(algorithm::eltwise_swish, post_alpha, post_beta);
-                    primitive_attr matmul_attr;
-                    matmul_attr.set_post_ops(matmul_ops);
-                    matmul_pd = new matmul::primitive_desc(*engine, input_md, weight_md, output_md, matmul_attr);
+            try {
+                switch (postAlg) {
+                    case matmul_kinds::Basic:
+                        printf(">>> DEBUG: Creating AMX matmul Basic\n");
+                        matmul_pd = new matmul::primitive_desc(*engine, input_md, weight_md, output_md);
+                        break;
+                    case matmul_kinds::Silu: {
+                        printf(">>> DEBUG: Creating AMX matmul Silu\n");
+                        const float post_alpha = 1.0f;
+                        const float post_beta = 0.0f;
+                        post_ops matmul_ops;
+                        matmul_ops.append_eltwise(algorithm::eltwise_swish, post_alpha, post_beta);
+                        primitive_attr matmul_attr;
+                        matmul_attr.set_post_ops(matmul_ops);
+                        matmul_pd = new matmul::primitive_desc(*engine, input_md, weight_md, output_md, matmul_attr);
                     break;
                 }
                 case matmul_kinds::Gelu: {
+                    printf(">>> DEBUG: Creating AMX matmul Gelu\n");
                     const float post_alpha = 1.0f;
                     const float post_beta = 0.0f;
                     post_ops matmul_ops;
@@ -2165,6 +2194,12 @@ private:
                     exit(-1);
                     break;
             }
+            printf(">>> DEBUG: Successfully created AMX matmul primitive_desc\n");
+        } catch (const std::exception& e) {
+            printf(">>> ERROR: Failed to create AMX matmul primitive_desc: %s\n", e.what());
+            printf(">>> ERROR: AMX Parameters - M=%d, N=%d, K=%d, transA=%d, postAlg=%d\n", M, N, K, transA, (int)postAlg);
+            throw;
+        }
             matmul_prim = new matmul(*matmul_pd);
             // Cache primitive_desc and matmul
             isCached = cache_matmul_primitive(matmul_pd, matmul_prim, transA, M, N, K, postAlg);
@@ -2219,6 +2254,8 @@ private:
     template <typename Tin, typename Twei, typename Tout>
     void onednn_amx_gemm_compute_biasadd(bool transA, int M, int N, int K, float alpha, const Tin *A,
             int lda, const Twei *packedB, float beta, Tout *C, int ldc, const float *bias) {
+        printf(">>> DEBUG: onednn_amx_gemm_compute_biasadd called: M=%d, N=%d, K=%d, transA=%d\n", M, N, K, transA);
+        
         TimeLine t("onednn_amx_gemm_compute_biasadd");
         TimeLine t1("onednn_amx_gemm_compute_biasadd.create_primitive");
         using namespace dnnl;
@@ -2258,8 +2295,20 @@ private:
                 printf(">>> onednn amx output date type not supported.");
             }
 
+            printf(">>> DEBUG: onednn_amx_gemm_compute_biasadd creating primitive_desc: M=%d, N=%d, K=%d, transA=%d\n", M, N, K, transA);
+            printf(">>> DEBUG: input_dims=[%ld,%ld], weight_dims=[%ld,%ld], bias_dims=[%ld,%ld], output_dims=[%ld,%ld]\n", 
+                   input_dims[0], input_dims[1], weight_dims[0], weight_dims[1], bias_dims[0], bias_dims[1], output_dims[0], output_dims[1]);
+            
             // Create primitive descriptor & primitive.
-            matmul_pd = new matmul::primitive_desc(*engine, input_md, weight_md, bias_md, output_md);
+            try {
+                printf(">>> DEBUG: Creating AMX matmul with bias\n");
+                matmul_pd = new matmul::primitive_desc(*engine, input_md, weight_md, bias_md, output_md);
+                printf(">>> DEBUG: Successfully created AMX bias matmul primitive_desc\n");
+            } catch (const std::exception& e) {
+                printf(">>> ERROR: Failed to create AMX bias matmul primitive_desc: %s\n", e.what());
+                printf(">>> ERROR: AMX Bias Parameters - M=%d, N=%d, K=%d, transA=%d\n", M, N, K, transA);
+                throw;
+            }
             matmul_prim = new matmul(*matmul_pd);
 
             // Cache primitive_desc and matmul

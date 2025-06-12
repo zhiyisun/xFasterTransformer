@@ -832,8 +832,11 @@ std::tuple<float *, int, int> Model::forward(bool logitsAll) {
 // We assume all gen kwargs in the batch are the same
 // and all sequences are all prompts(step==0) or all decodes(step>0)
 std::vector<int32_t> Model::generate() {
+    printf(">>> DEBUG: Model::generate() called, workingGroup.size=%ld\n", workingGroup.size());
+    
     // TODO: Deprecate the following Path
     if (searcher != nullptr) {
+        printf(">>> DEBUG: Using searcher path\n");
         if (inputIds.empty()) {
             printf("Please set input tokens by model.input().\n");
             exit(-1);
@@ -845,6 +848,7 @@ std::vector<int32_t> Model::generate() {
             return searcher->getNextToken();
         }
     } else {
+        printf(">>> DEBUG: Using new sequence-based path\n");
         // TODO
         // Assume that all sequences in the group are all prompts or all decodes.
         // Prepare input data for the decoder.
@@ -1012,6 +1016,9 @@ bool Model::setStopWords(std::vector<std::vector<int>> stopWordsList) {
 }
 
 AutoModel::AutoModel(std::string modelPath, xft::DataType dataType, xft::DataType KVCacheDataType) : Model() {
+    printf(">>> DEBUG: AutoModel constructor - modelPath=%s, dataType=%d, KVCacheDataType=%d\n", 
+           modelPath.c_str(), (int)dataType, (int)KVCacheDataType);
+           
     std::string configPath = modelPath + "/config.ini";
     INIReader reader = INIReader(configPath);
 
@@ -1020,9 +1027,12 @@ AutoModel::AutoModel(std::string modelPath, xft::DataType dataType, xft::DataTyp
         exit(-1);
     }
     std::string modeltype = *reader.Sections().begin();
+    printf(">>> DEBUG: Model type from config: %s\n", modeltype.c_str());
+    
     setVocabSize(reader.GetInteger(modeltype, "vocab_size"));
 
     std::string modelKey = modeltype + "-" + xft::getTypeIdName(dataType) + "-" + xft::getTypeIdName(KVCacheDataType);
+    printf(">>> DEBUG: Model key: %s\n", modelKey.c_str());
 
     AbstractDecoder *dec = DecoderFactory::Create(modelKey, modelPath);
     if (dec == nullptr) {
