@@ -593,12 +593,19 @@ public:
         // Assume input has been synced with master in higher level.
         TimeLine t("Decoder.forward");
         TimeLine t1("Decoder.embedding");
+        
+        printf(">>> DEBUG: CommonDecoder::forward called with %ld sequences\n", seqs.size());
 
-        if (unlikely(seqs.empty())) { return std::tuple<float *, int, int>(nullptr, 0, 0); }
+        if (unlikely(seqs.empty())) { 
+            printf(">>> DEBUG: CommonDecoder::forward - sequences empty, returning\n");
+            return std::tuple<float *, int, int>(nullptr, 0, 0); 
+        }
 
         DecoderContext *ctx = this->getContext();
         int batchSize = seqs.size();
         int hiddenSize = ctx->hiddenSize;
+        
+        printf(">>> DEBUG: CommonDecoder::forward - batchSize=%d, hiddenSize=%d\n", batchSize, hiddenSize);
 
         // Prepare input
         int totInputSeqLen = 0;
@@ -610,6 +617,8 @@ public:
             auto ids = seq->getInputTokens();
             allInputIds.insert(allInputIds.end(), ids.begin(), ids.end());
         }
+        
+        printf(">>> DEBUG: CommonDecoder::forward - totInputSeqLen=%d, totPastSeqLen=%d\n", totInputSeqLen, totPastSeqLen);
 
         // Prepare context
         ctx->resize(totInputSeqLen, totInputSeqLen + totPastSeqLen);
@@ -638,7 +647,9 @@ public:
 #endif
 
         // Decoder block (all layers)
+        printf(">>> DEBUG: About to call decoderBlock->forward with totInputSeqLen=%d\n", totInputSeqLen);
         decoderBlock->forward(ctx, seqs, embBuf, embBuf);
+        printf(">>> DEBUG: decoderBlock->forward completed\n");
 
         // Prepare input for final Layer Norm (only care about the last row of the result)
         // Shape of embBuf: (total_input_seqlen, hiddenSize)

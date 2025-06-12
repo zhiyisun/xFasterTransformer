@@ -88,6 +88,8 @@ public:
 
         Messenger &messenger = Messenger::getInstance();
         xft::KVCacheMgr &kvCacheMgr = xft::KVCacheMgr::instance();
+        
+        printf(">>> DEBUG: DecoderBlock::forward called with %ld sequences\n", seqs.size());
 
         // Data preparation
         std::vector<int> seqIDs(seqs.size());
@@ -96,6 +98,8 @@ public:
             seqIDs[i] = seqs[i]->getSequenceID();
             totInSeqLen += seqs[i]->getInputSeqLen();
         }
+        
+        printf(">>> DEBUG: DecoderBlock::forward - totInSeqLen=%ld, hiddenSize=%d\n", totInSeqLen, ctx->hiddenSize);
 
         // TODO: check and prepare KV cache only needed
         kvCacheMgr.prepareCache(seqIDs);
@@ -105,17 +109,23 @@ public:
         auto input = inputBuf;
         auto output = outputBuf;
         AttnOutT *attnOut = (AttnOutT *)(ctx->tmpBuf.Data());
+        
+        printf(">>> DEBUG: DecoderBlock::forward - about to process %d layers\n", layersOnDuty);
 
         for (int i = 0; i < layersOnDuty; ++i) {
+            printf(">>> DEBUG: DecoderBlock::forward - processing layer %d/%d\n", i+1, layersOnDuty);
+            
             int workers = messenger.getSize();
 
             std::vector<void *> keyCaches = kvCacheMgr.getKey(i);
             std::vector<void *> valueCaches = kvCacheMgr.getValue(i);
 
             // Reinterpret the keyCaches and valueCaches to the correct type
+            printf(">>> DEBUG: About to call forwardAttention for layer %d\n", i);
             this->decoders[i]->forwardAttention(ctx, seqs, input, attnOut, totInSeqLen,
                     *reinterpret_cast<std::vector<KVCacheTensor<KVCacheT> *> *>(&keyCaches),
                     *reinterpret_cast<std::vector<KVCacheTensor<KVCacheT> *> *>(&valueCaches));
+            printf(">>> DEBUG: forwardAttention completed for layer %d\n", i);
 
             // Merge the result of attention
             // When attention and FFN/MLP are in parallel, do not need to reduce after attention
@@ -128,6 +138,7 @@ public:
                 std::cerr << "Error: ATTN_MLP_PARALLEL=true is not supported." << std::endl;
                 std::exit(-1);
             } else {
+                printf(">>> DEBUG: About to call forwardFFN for layer %d\n", i);
                 if (messenger.getSize() > 1) {
                     this->decoders[i]->forwardFFN(
                             ctx, attnOut, output, ctx->hiddenSize, ctx->hiddenSize, true, totInSeqLen);
@@ -136,6 +147,7 @@ public:
                     this->decoders[i]->forwardFFN(
                             ctx, attnOut, output, ctx->hiddenSize, ctx->hiddenSize, true, totInSeqLen);
                 }
+                printf(">>> DEBUG: forwardFFN completed for layer %d\n", i);
             }
 
             // Update the input/output for the next layer
