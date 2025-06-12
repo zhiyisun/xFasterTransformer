@@ -543,15 +543,21 @@ public:
 
         // Query, Key, Value computed together
         TimeLine t2("QKV.linear");
+        printf(">>> DEBUG: About to call QKV matmul - M=%lu, N=%d, K=%lu, bias=%s\n", 
+               imBuffer.Rows(), qkvWeight.Cols(), imBuffer.Cols(), 
+               qkvBias.Size() == 0 ? "no" : "yes");
         if (qkvBias.Size() == 0) {
+            printf(">>> DEBUG: Calling QKV compute (no bias)\n");
             ctx->mmHelper->compute(false, imBuffer.Rows(), qkvWeight.Cols(), imBuffer.Cols(), 1.0f, imBuffer.Data(),
                     imBuffer.Stride(), qkvWeight.Data(), qkvWeightScale.Data(), qkvWeightZero.Data(),
                     qkvWeightSum.Data(), 0.0f, qkvGroupMatMul.Data(), qkvGroupMatMul.Stride());
         } else {
+            printf(">>> DEBUG: Calling QKV compute_bias (with bias)\n");
             ctx->mmHelper->compute_bias(false, imBuffer.Rows(), qkvWeight.Cols(), imBuffer.Cols(), 1.0f,
                     imBuffer.Data(), imBuffer.Stride(), qkvWeight.Data(), qkvWeightScale.Data(), qkvWeightZero.Data(),
                     qkvWeightSum.Data(), 0.0f, qkvGroupMatMul.Data(), qkvGroupMatMul.Stride(), qkvBias.Data());
         }
+        printf(">>> DEBUG: QKV computation completed successfully\n");
         t2.release();
 
         xft::Matrix<ImT> query(qkvGroupMatMul, 0, inputBuffer.Rows(), 0, qCols);
